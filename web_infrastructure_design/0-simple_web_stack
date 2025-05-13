@@ -1,0 +1,68 @@
+# 0. Simple Web Stack
+
+This file explains how a basic web stack works when everything is hosted on a single server (IP: 8.8.8.8). It includes a diagram on 0_illustration file, and a detailed, human-friendly breakdown of each step.
+
+
+
+---
+
+## 🔍 Detailed Explanation
+
+This architecture shows a very simple web stack setup, where all the core components of a website live on a single server. While it’s minimalistic, it’s also a great way to understand how everything fits together.
+
+Let’s break it down step by step, from the user’s point of view.
+
+### 1. The user’s browser sends a request
+
+When someone types `www.foobar.com` into their browser, the browser doesn’t magically know where to go. First, it has to figure out the actual IP address of the server behind that domain name. This is where DNS (Domain Name System) comes in.
+
+### 2. DNS resolves the domain
+
+The browser contacts a DNS server and asks: “Where is `www.foobar.com`?”  
+The DNS server replies with an IP address — in this case, `8.8.8.8`. Now the browser knows where to send the request.
+
+### 3. The request reaches the Web Server (Nginx)
+
+The browser sends an HTTP request to the IP address `8.8.8.8`. That request arrives at the **web server**, which is usually a program like **Nginx** or **Apache**. Its job is to handle incoming web requests. If the request is for a static file (like an image or a CSS file), the web server might handle it directly. But most of the time, it forwards the request to the **application server**.
+
+### 4. The Application Server runs the logic
+
+The **application server** is where the real "brain" of the website lives. This could be built with technologies like PHP, Flask (Python), Node.js, etc. It takes the request and decides how to respond. Maybe it needs to log the user in, retrieve a list of items from a database, or display a form.
+
+### 5. The Application Server queries the database
+
+If the app needs to show dynamic content — like blog posts, user data, orders, etc. — it will contact the **database**.  
+In our case, that’s a **MySQL** database running on the same server. It stores all the structured data the website needs.
+
+### 6. The database returns the data
+
+The database responds with the requested information, and the application server uses that data to build the final HTML page (or JSON, depending on the type of application).
+
+### 7. The Application Server builds the response
+
+With the help of the database and the application files (which contain the codebase, templates, and assets), the app server puts together the full response: a complete webpage ready to be sent back to the browser.
+
+### 8. The Web Server delivers the response
+
+The response goes back through the **web server**, which sends it out over the internet to the user’s browser.
+
+### 9. The browser displays the content
+
+The user finally sees the webpage they asked for. The whole process usually takes less than a second, but under the hood, a lot just happened.
+
+---
+
+## Limitations of This Architecture
+
+This kind of setup is common for small applications, prototypes, or personal projects. It’s simple and easy to manage because everything is on one machine.
+
+But there are real limitations:
+
+- If the **server crashes**, everything goes down (this is called a *Single Point of Failure* : SPOF).
+- It’s hard to handle a lot of traffic — one machine can only do so much.
+- Updates or maintenance require stopping the whole service.
+- There’s no redundancy or scalability.
+
+---
+
+This stack is a great starting point to understand how web applications work. Once you master this, you’ll be more than ready to dive into more advanced setups like load balancers, high availability, or cloud deployments.
