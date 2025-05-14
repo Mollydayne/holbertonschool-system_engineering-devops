@@ -53,7 +53,8 @@ This basic web infrastructure includes:
 
 - A domain name: **www.foobar.com**
 - A DNS record that points to a **single IP address** (`8.8.8.8`)
-- One physical server (or VM) hosting everything:
+- One physical server (or VM) hosting everything, it can
+- be in a datacenter or not and has an operating system:
   - A **web server** (Nginx)
   - An **application server**
   - Your **application files** (code base)
