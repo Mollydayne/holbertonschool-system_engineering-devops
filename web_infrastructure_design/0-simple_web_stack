@@ -1,68 +1,152 @@
 # 0. Simple Web Stack
 
-This file explains how a basic web stack works when everything is hosted on a single server (IP: 8.8.8.8). It includes a diagram on 0_illustration file, and a detailed, human-friendly breakdown of each step.
-
-
+Let’s imagine you're just opening your very first digital bakery. You don't have a whole team or a fancy open kitchen yet : it's just you, one oven, and a place to serve from. That’s what this single-server setup is.
 
 ---
 
-## 🔍 Detailed Explanation
+                           +---------------------------+
+                           |         Internet          |
+                           +-------------+-------------+
+                                         |
+                        1. DNS Lookup    | 2. HTTP Request
+                                         v
+                             +--------------------+
+                             |     DNS Server     |
+                             | www.foobar.com --> |
+                             |       8.8.8.8      |
+                             +--------------------+
+                                         |
+                                 3. Connect to
+                                         v
+                           +---------------------------+
+                           |     Single Server (IP)    |
+                           |          8.8.8.8          |
+                           +---------------------------+
+                           |                           |
+                           |  +---------------------+  |
+                           |  |   Web Server        |  | ← Nginx
+                           |  |  (Receives HTTP)    |  |
+                           |  +---------------------+  |
+                           |             |             |
+                           |             v             |
+                           |  +---------------------+  |
+                           |  | Application Server  |  | ← Flask, PHP...
+                           |  |  (Runs the logic)   |  |
+                           |  +---------------------+  |
+                           |             |             |
+                           |             v             |
+                           |  +---------------------+  |
+                           |  | Application Files   |  | ← Your codebase
+                           |  +---------------------+  |
+                           |             |             |
+                           |             v             |
+                           |  +---------------------+  |
+                           |  |   MySQL Database    |  | ← Stores data
+                           |  +---------------------+  |
+                           +---------------------------+
 
-This architecture shows a very simple web stack setup, where all the core components of a website live on a single server. While it’s minimalistic, it’s also a great way to understand how everything fits together.
 
-Let’s break it down step by step, from the user’s point of view.
 
-### 1. The user’s browser sends a request
+## The Setup
 
-When someone types `www.foobar.com` into their browser, the browser doesn’t magically know where to go. First, it has to figure out the actual IP address of the server behind that domain name. This is where DNS (Domain Name System) comes in.
+This basic web infrastructure includes:
 
-### 2. DNS resolves the domain
+- A domain name: **www.foobar.com**
+- A DNS record that points to a **single IP address** (`8.8.8.8`)
+- One physical server (or VM) hosting everything:
+  - A **web server** (Nginx)
+  - An **application server**
+  - Your **application files** (code base)
+  - A **MySQL database**
 
-The browser contacts a DNS server and asks: “Where is `www.foobar.com`?”  
-The DNS server replies with an IP address — in this case, `8.8.8.8`. Now the browser knows where to send the request.
-
-### 3. The request reaches the Web Server (Nginx)
-
-The browser sends an HTTP request to the IP address `8.8.8.8`. That request arrives at the **web server**, which is usually a program like **Nginx** or **Apache**. Its job is to handle incoming web requests. If the request is for a static file (like an image or a CSS file), the web server might handle it directly. But most of the time, it forwards the request to the **application server**.
-
-### 4. The Application Server runs the logic
-
-The **application server** is where the real "brain" of the website lives. This could be built with technologies like PHP, Flask (Python), Node.js, etc. It takes the request and decides how to respond. Maybe it needs to log the user in, retrieve a list of items from a database, or display a form.
-
-### 5. The Application Server queries the database
-
-If the app needs to show dynamic content — like blog posts, user data, orders, etc. — it will contact the **database**.  
-In our case, that’s a **MySQL** database running on the same server. It stores all the structured data the website needs.
-
-### 6. The database returns the data
-
-The database responds with the requested information, and the application server uses that data to build the final HTML page (or JSON, depending on the type of application).
-
-### 7. The Application Server builds the response
-
-With the help of the database and the application files (which contain the codebase, templates, and assets), the app server puts together the full response: a complete webpage ready to be sent back to the browser.
-
-### 8. The Web Server delivers the response
-
-The response goes back through the **web server**, which sends it out over the internet to the user’s browser.
-
-### 9. The browser displays the content
-
-The user finally sees the webpage they asked for. The whole process usually takes less than a second, but under the hood, a lot just happened.
+All of that lives under the same roof.
 
 ---
 
-## Limitations of This Architecture
+## Role-by-role Breakdown
 
-This kind of setup is common for small applications, prototypes, or personal projects. It’s simple and easy to manage because everything is on one machine.
+### What is a server?
 
-But there are real limitations:
+A **server** is just a computer designed to respond to other computers. It’s like a chef that never sleeps, always ready to take orders.
 
-- If the **server crashes**, everything goes down (this is called a *Single Point of Failure* : SPOF).
-- It’s hard to handle a lot of traffic — one machine can only do so much.
-- Updates or maintenance require stopping the whole service.
-- There’s no redundancy or scalability.
+In this case, your server is both the chef, the waiter, the kitchen, and the cash register.
 
 ---
 
-This stack is a great starting point to understand how web applications work. Once you master this, you’ll be more than ready to dive into more advanced setups like load balancers, high availability, or cloud deployments.
+### What is the role of the domain name?
+
+Imagine your bakery is amazing, but it's located at GPS coordinates. No one wants to remember `8.8.8.8`.
+Instead, people remember your catchy name: **foobar.com**.
+The **domain name** is a friendly alias for your IP address.
+
+---
+
+### What type of DNS record is `www` in `www.foobar.com`?
+
+That’s an **A record** : it maps a hostname to an IP address.
+
+So when someone looks up `www.foobar.com`, the DNS server replies:
+> "Ah yes, that’s 8.8.8.8 : go talk to that server."
+
+---
+
+### What is the role of the web server?
+
+The **web server** (like Nginx) is your front counter. It handles all incoming orders (HTTP requests), and either serves static content (like pastries already wrapped), or passes the order to the kitchen.
+
+---
+
+### What is the role of the application server?
+
+That’s your kitchen. It’s where the dynamic dishes are prepared — maybe logging someone in, processing an order, or calculating a total.
+
+This is where **logic** happens.
+
+---
+
+### What is the role of the database?
+
+The **MySQL database** is your recipe book and accounting system.
+It stores:
+- What products exist,
+- What orders have been made,
+- Who your customers are.
+
+You can read from it or update it, but without it, you’d be lost.
+
+---
+
+### What is the server using to communicate with the user’s machine?
+
+All communication happens over **HTTP (or HTTPS)** : which uses the **TCP/IP protocol stack** under the hood.
+
+It’s like the set of kitchen rules that ensure the order comes in, the dish is served, and everything returns to the customer in a format they understand.
+
+---
+
+##  Weaknesses of this Setup
+
+This single-server infrastructure is simple and cozy, but it comes with serious downsides:
+
+### 1. SPOF — Single Point of Failure
+
+If your one server goes down, the whole bakery closes.
+No service, no website, no logs, no access.
+
+### 2. Maintenance means downtime
+
+Every time you want to update the app, deploy a fix, or restart something…
+You must shut down your only machine — and therefore, shut down the whole service.
+
+### 3. No scalability
+
+If suddenly everyone wants your bread (high traffic), this little shop can't serve them all.
+You’ll hit the limits of memory, CPU, bandwidth… and then crash.
+
+---
+
+## Conclusion
+
+This setup is perfect to get started — like a food truck before opening your restaurant.
+It helps you understand every moving part, and you can build upon it piece by piece as you grow.
+

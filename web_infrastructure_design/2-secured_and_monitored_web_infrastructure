@@ -1,0 +1,179 @@
+# 2. Secured and Monitored Web Infrastructure
+
+In this version of the infrastructure, we’re keeping the same base: a load balancer, two backend servers, and a MySQL Primary/Replica cluster.
+
+But now, we’re adding **security and observability**, like giving our restaurant:
+- A locked front door,
+- Private conversations with customers,
+- And cameras in the kitchen to see if anything catches fire.
+
+---
+
+##  Additional Components
+
+-  3 Firewalls (one per machine)
+-  1 SSL certificate (for HTTPS at `www.foobar.com`)
+-  3 Monitoring clients (e.g., Sumologic, Datadog, Prometheus agent...)
+
+---
+
+##  Updated Architecture
+
+                    +------------------+
+                    |      User        |
+                    +------------------+
+                             |
+                    1. HTTPS Request (TLS)
+                             v
+                    +--------------------------+
+                    |  Load Balancer (HAProxy) |
+                    |      SSL Termination     |
+                    |        + Firewall        |
+                    +--------------------------+
+                     |               |
+           4a. RR    |               |    4b. RR
+                     v               v
+           +----------------+   +----------------+
+           |   Server 1     |   |   Server 2     |
+           |----------------|   |----------------|
+           | - Firewall     |   | - Firewall     |
+           | - Nginx        |   | - Nginx        |
+           | - App Server   |   | - App Server   |
+           | - App Files    |   | - App Files    |
+           | - Monitoring   |   | - Monitoring   |
+           +----------------+   +----------------+
+                    |                    |
+                    v                    v
+              +---------+          +---------+
+              |  Write  |          |  Write  |
+              +----+----+          +----+----+
+                   |                    |
+                   v                    v
+             +-----------------------------+
+             | MySQL Primary DB + Monitor  |
+             |     + Firewall              |
+             +-----------------------------+
+                         |
+                Replication (Read-only)
+                         v
+             +-----------------------------+
+             |  MySQL Replica DB           |
+             +-----------------------------+
+                   ^              ^
+                   |              |
+                 Read           Read
+                   |              |
+              +---------+    +---------+
+              | App 1   |    | App 2   |
+              +---------+    +---------+
+
+
+---
+
+##  Explanation
+
+Imagine again that your infrastructure is a restaurant.
+
+In the last version, you had a great team and fast service… but the doors were wide open, the guests were speaking out loud, and no one was checking the smoke detectors.
+
+Now, you’ve decided to run a tighter ship.
+
+---
+
+### Firewalls → Security Guards at Every Door
+
+Each server has its own **firewall** now. Think of it as a bouncer standing at the door.
+
+> “You — only port 22 for SSH, port 80/443 for web. No funny business.”
+
+Firewalls are here to make sure only **authorized traffic** reaches your machines. No ports left open by accident, no random IPs poking around.
+
+---
+
+###  HTTPS (SSL Certificate) → Private conversations
+
+You’ve installed an **SSL certificate** on the **load balancer**, so when users visit `https://www.foobar.com`, they’re connecting over **encrypted HTTPS**.
+
+This means:
+- No one can **listen in** on what the guest is saying.
+- No one can **alter the content** being delivered on the fly.
+
+It’s like your welcoming guests in a private, soundproof place, instead of yelling orders across the street.
+
+---
+
+### Why SSL termination at the load balancer can be risky
+
+The load balancer decrypts the data (SSL termination), and then passes it **unencrypted** to the backend servers.
+
+This is faster and simpler, but it creates a **security gap**:
+- Anyone sniffing inside the internal network can see the traffic in plain text.
+- Sensitive data could leak if the network isn’t isolated or secured.
+
+In production, you’d ideally re-encrypt traffic **between the LB and the app servers** too.
+
+---
+
+### Monitoring → Cameras, Thermometers, and Alarms
+
+You’ve installed **monitoring clients** on each server. These agents track:
+
+- CPU usage
+- Memory consumption
+- Disk space
+- Number of HTTP requests (QPS – queries per second)
+- Web server status
+- Database replication lag
+- Uptime
+
+It’s like putting **sensors and cameras** in the kitchen and dining room.
+
+If the stove overheats, if a waiter collapses, or if no guests have arrived in 10 minutes — you’ll know.
+
+---
+
+### How Monitoring Works
+
+Each monitoring client collects metrics **locally**, then ships them to a monitoring service.
+
+Depending on the tool, data is pulled or pushed to a central dashboard.
+There, you can visualize system health, set alerts, and dig into incidents.
+
+Want to know how many requests your web server got per second? You can chart that.
+Want to alert if the MySQL replication is delayed by 5 seconds? Done.
+
+---
+
+## Issues to Be Aware Of
+
+Even with HTTPS and monitoring, there are some weaknesses.
+
+### SSL Termination at Load Balancer
+- Traffic inside the network isn’t encrypted.
+- Anyone on the same internal network can sniff it.
+
+### Only One MySQL for Writes
+- Still a **single point of failure**.
+- If the Primary dies, no writes can happen until you promote the Replica.
+
+### Identical Servers (All-in-One)
+- Every server runs Web + App + DB → not ideal for **role separation**.
+- Scaling each layer separately is difficult (e.g., adding more DB-only machines isn’t possible).
+
+---
+
+## Conclusion
+
+This secured and monitored version of the architecture provides a **huge step forward**:
+
+- Users are protected with HTTPS
+- Firewalls prevent unauthorized access
+- Monitoring lets you sleep at night (until the pager goes off)
+
+But there’s still room for improvement:
+- You’d want **TLS all the way through** (not just at the load balancer)
+- Maybe set up a **write-capable MySQL failover**
+- Separate **web, app, and DB roles** to scale better
+
+For now though you’ve got a proper, secure infrastructure, and you can finally see what’s going on inside. Have a nice lunch.
+

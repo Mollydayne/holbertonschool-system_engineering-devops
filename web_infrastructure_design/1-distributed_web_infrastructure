@@ -1,0 +1,189 @@
+# 1. Distributed Web Infrastructure
+
+This document describes a distributed web infrastructure for the domain `www.foobar.com`. The architecture includes a load balancer, two backend servers, and a MySQL primary-replica database setup.
+
+---
+
+## Architecture Diagram
+
+                    +------------------+
+                    |      User        |
+                    +------------------+
+                             |
+                    1. Request foobar.com
+                             v
+                    +------------------+
+                    |    DNS Server    |
+                    | www.foobar.com → |
+                    |     8.8.8.8      |
+                    +------------------+
+                             |
+                    2. IP Resolution
+                             v
+                    +------------------+
+                    |  Load Balancer   |
+                    |     HAProxy      |
+                    +------------------+
+                     |               |
+           4a. RR    |               |   4b. RR
+                     v               v
+           +----------------+   +----------------+
+           |   Server 1     |   |   Server 2     |
+           |----------------|   |----------------|
+           | - Nginx        |   | - Nginx        |
+           | - App Server   |   | - App Server   |
+           | - App Files    |   | - App Files    |
+           +----------------+   +----------------+
+                    |                    |
+                    v                    v
+              +---------+          +---------+
+              |  Write  |          |  Write  |
+              +----+----+          +----+----+
+                   |                    |
+                   v                    v
+             +-----------------------------+
+             |     MySQL Primary DB        |
+             +-----------------------------+
+                         |
+                Replication (Read-only)
+                         v
+             +-----------------------------+
+             |     MySQL Replica DB        |
+             +-----------------------------+
+                   ^              ^
+                   |              |
+                 Read           Read
+                   |              |
+              +---------+    +---------+
+              | App 1   |    | App 2   |
+              +---------+    +---------+
+
+
+
+
+---
+
+## Explanation of the Distributed Web Infrastructure
+
+Let’s imagine for a moment that your website is a restaurant, and the users are hungry guests lining up outside.
+
+---
+
+###  1. The User → Your hungry guest
+
+A user types `www.foobar.com` into their browser. That’s like asking Google Maps for the address of your restaurant: "foobar".
+
+---
+
+### 2. DNS Server → The phonebook of the internet
+
+The DNS server looks up `www.foobar.com` and replies:
+> “Sure, that’s located at 8.8.8.8.”
+
+That’s the IP address of your **load balancer**.
+
+---
+
+### 3. Load Balancer (HAProxy) → The maître d’hôtel
+
+The **load balancer** greets each guest and shows them to a table.
+It uses a method called **Round Robin**, like dealing out cards:
+
+- Guest 1 → Server 1
+- Guest 2 → Server 2
+- Guest 3 → back to Server 1
+...and so on.
+
+It ensures traffic is shared fairly between your servers / Tables of yur restaurant.
+
+---
+
+### 4. Web Servers (Nginx) → The waiters
+
+Once the guest is at a table (the load balancer chose a server), the **web server** (Nginx) acts like a waiter.
+
+It receives the user’s request and passes it on to the kitchen (application server).
+
+---
+
+### 5. Application Server → The kitchen staff
+
+The **app server** is the chef.
+It prepares whatever the guest asked for : a profile, a list of items, an order summary. often by pulling ingredients (data) from the pantry (databse).
+
+---
+
+### 6. Database Cluster → The pantry
+
+There are two pantries:
+- The **Primary** (Master) for writing,
+- The **Replica** (Slave) for reading.
+
+The chefs write new ingredients to the **Primary**, and read commonly-used ones from the **Replica**.
+
+This avoids bottlenecks and keeps the kitchen smooth.
+
+---
+
+### 7. Replication → Magic mirrors
+
+Everything written in the Primary pantry is magically copied to the Replica via **replication**.
+
+So the Replica always has fresh ingredients for read-only operations.
+
+---
+
+### 8. The Response → Serving the dish
+
+Once ready, the response (the dish) is passed back from the kitchen to the waiter (Nginx), and finally to the guest’s browser.
+
+From start to finish — it's all super fast.
+
+---
+
+## Summary of Request Flow
+
+| Step | Description |
+|------|-------------|
+| 1    | User requests `www.foobar.com` |
+| 2    | DNS returns IP address of Load Balancer |
+| 3    | Load Balancer picks a server (Round Robin) |
+| 4    | Nginx receives the HTTP request |
+| 5    | App server processes the logic |
+| 6    | Writes → Primary DB, Reads → Replica DB |
+| 7    | App server builds response |
+| 8    | Nginx sends it back to the user |
+
+---
+
+## Potential Weaknesses
+
+###  SPOF — Single Point of Failure
+
+If the **load balancer** crashes, nobody gets in. Even if both servers are up. This is a SPOF (Single Point of Failure).
+
+###  No HTTPS / Firewall
+
+There’s no **encryption** or **security wall**. Anyone could spy or attack.
+
+###  No monitoring
+
+If a server goes down, no one knows : there’s no alert system in place.
+
+---
+
+## Conclusion
+
+This distributed infrastructure is a big improvement over a single server:
+- More reliable,
+- Better performance,
+- Less risk of overload.
+
+But it’s not bulletproof. You’d want:
+- Redundant load balancers,
+- File sync between servers,
+- HTTPS + firewall,
+- Monitoring tools,
+- Failover mechanisms.
+
+

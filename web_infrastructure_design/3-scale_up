@@ -1,0 +1,136 @@
+# 3. Scale Up – Splitting and Scaling the Infrastructure
+
+We’ve now reached a point where our infrastructure is no longer a cozy family restaurant. It’s turning into a fast-growing food court.
+
+Too many guests are arriving, and our previous all-in-one kitchen can’t keep up. So we’re scaling up.
+
+---
+
+                  +------------------------+
+                  |      Load Balancer 1   |
+                  |        (HAProxy)       |
+                  +------------------------+
+                             |
+                  +------------------------+
+                  |      Load Balancer 2   |
+                  |    (HAProxy backup)    |
+                  +------------------------+
+                             |
+                             v
+                 +------------------------------+
+                 |     Web Servers Cluster      |
+                 |      (Static Content)        |
+                 +------------------------------+
+                     |                    |
+             +---------------+     +---------------+
+             |   Web Server 1|     |   Web Server 2|
+             +---------------+     +---------------+
+                     |                    |
+                     v                    v
+                Forward HTTP         Forward HTTP
+                     |                    |
+                     v                    v
+             +------------------------------------+
+             |      Application Servers Cluster   |
+             |   (Dynamic logic, API, templates)  |
+             +------------------------------------+
+                     |                    |
+             +---------------+     +---------------+
+             |   App Server 1|     |   App Server 2|
+             +---------------+     +---------------+
+                     |                    |
+                     v                    v
+                 Query / Write      Query / Write
+                          \        /
+                          +------+
+                          |  DB  |
+                          | MySQL|
+                          +------+
+                          |Primary|
+                          +------+
+                             |
+                      Replication to
+                             |
+                          +------+
+                          |Replica|
+                          +------+
+
+
+## What we’re adding
+
+To scale properly and avoid bottlenecks, we’re doing two things:
+
+1. **Adding a second load balancer**, configured in a cluster setup with the first one.
+2. **Splitting the roles** of our infrastructure: now, web servers, application servers, and database servers all run on **separate machines**.
+
+---
+
+## Why split the roles?
+
+Think of it like this:
+
+- A **web server** is the greeter. It hands out menus, shows static signs, displays the homepage. It’s fast, efficient, and doesn’t cook anything.
+- An **application server** is the kitchen. It takes the customer’s order, cooks the meal, handles the logic.
+- The **database** is the pantry. It stores the ingredients, recipes, and keeps a record of every order.
+
+By splitting these roles:
+- Each unit can specialize and optimize its work.
+- We avoid having every waiter also cooking and managing storage.
+- We can scale each layer independently.
+
+---
+
+## Role Breakdown
+
+### Load Balancers (HAProxy)
+Now we have two load balancers working together:
+- One is active, the other is on standby (or in cluster with keepalived).
+- This removes the single point of failure from our front door.
+
+### Web Servers
+These are dedicated to serving static content: HTML, CSS, images, JavaScript files.
+They don’t run the logic — they just deliver the goods fast and clean.
+
+### Application Servers
+These are the brains. They process user requests, handle authentication, form submissions, dynamic pages, and API responses.
+
+They **don’t deal with images or CSS** — only logic and code.
+
+### Database Servers
+Still based on a MySQL primary/replica setup:
+- Only the primary accepts writes.
+- The replica handles reads to reduce the load.
+- Replication keeps both in sync.
+
+---
+
+## Why each component was added
+
+| Component             | Reason for adding |
+|----------------------|-------------------|
+| Second Load Balancer | Avoid SPOF (if one fails, the other takes over) |
+| Web/App split        | Scalability, performance, specialization |
+| Dedicated DB server  | Isolation of storage, better security and optimization |
+
+---
+
+## What would happen without splitting?
+
+If we kept stuffing everything onto one server:
+- It would run out of memory quickly.
+- The web server might crash under file requests while the app server is still processing logins.
+- We wouldn’t be able to scale web traffic separately from database performance.
+
+---
+
+## Summary
+
+Scaling up means breaking things apart:
+- It’s not about adding more of the same.
+- It’s about organizing things better.
+
+Now, we’ve prepared an infrastructure that can:
+- Scale each layer as needed,
+- Handle more users,
+- And survive load spikes without burning out.
+
